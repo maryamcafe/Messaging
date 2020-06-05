@@ -27,7 +27,7 @@ public class ConsumerGroup extends Thread{
     }
 
     private void initialize() throws FileNotFoundException {
-        for(int i=0;i<numberOfConsumers;i++) {
+        for(int i=0; i < numberOfConsumers; i++) {
             String consumerName = groupName + "_" + i;
             consumers.add(new Consumer(this, consumerName));
         }

@@ -24,3 +24,7 @@ hs_err_pid*
 
 .idea
 *.iml
+
+/src/test/
+
+/src/Main/java/MyLoggerTest.java

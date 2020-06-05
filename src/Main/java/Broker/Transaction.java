@@ -5,7 +5,7 @@ import java.util.Queue;
 
 public class Transaction {
 
-    private TopicWriter topicWriter;
+    private final TopicWriter topicWriter;
     private String producerName;
     private Queue<Integer> values;
 
@@ -20,10 +20,12 @@ public class Transaction {
     }
 
     void commit() {
-        topicWriter.writeValue(0);
-        while(!values.isEmpty()) {
-            topicWriter.writeValue(values.remove());
+        synchronized (topicWriter) {
+            topicWriter.writeValue(0);
+            while (!values.isEmpty()) {
+                topicWriter.writeValue(values.remove());
+            }
+            topicWriter.writeValue(-1);
         }
-        topicWriter.writeValue(-1);
     }
 }

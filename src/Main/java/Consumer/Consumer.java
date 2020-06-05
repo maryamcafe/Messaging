@@ -3,6 +3,8 @@ package Consumer;
 import Broker.MessageBroker;
 import Broker.NoSuchTopicException;
 
+import java.io.IOException;
+
 public class Consumer extends Thread {
 
     private ConsumerGroup consumerGroup;
@@ -13,15 +15,15 @@ public class Consumer extends Thread {
         this.consumerName = consumerName;
     }
 
-    public int get() throws NoSuchTopicException {
-        return getMessageBroker().get(getTopicName(), consumerGroup.getGroupName(), consumerName);
+    public int getValue() throws NoSuchTopicException, IOException {
+        return getMessageBroker().getValue(getTopicName(), consumerGroup.getGroupName(), consumerName);
     }
 
     public void run() {
         while(true) {
             try {
-                consumerGroup.performAction(this, get());
-            } catch (NoSuchTopicException e) {
+                consumerGroup.performAction(this, getValue());
+            } catch (NoSuchTopicException | IOException e) {
                 e.printStackTrace();
             }
         }

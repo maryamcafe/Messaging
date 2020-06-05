@@ -1,6 +1,14 @@
 package Broker;
 
+import Producer.Producer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 public class Topic {
@@ -9,13 +17,23 @@ public class Topic {
     private File topicFile;
     private TopicWriter topicWriter;
     private HashMap<String, TopicReader> topicReaders;
+    static final Logger logger = LogManager.getLogger(Topic.class);
 
     Topic(String name) {
         this.name = name;
-
-        topicFile = new File(name + ".dat");
+        initFile();
         topicWriter = new TopicWriter(this);
         topicReaders = new HashMap<>();
+    }
+
+    private void initFile() {
+        Path path = Paths.get(name + ".txt");
+        topicFile = path.toFile();
+        try {
+            Files.createFile(path);
+        } catch (IOException e) {
+            logger.warn("Topic file already existed: " + e.getMessage());
+        }
     }
 
     public File getTopicFile() {
@@ -27,19 +45,21 @@ public class Topic {
     }
 
     /**
-     * This method is used to get the first value in the topic file which is not read in the given group yet, and serve it for the appropriate consumer.
+     * This method is used to get the first value in the topic file which is not read in the given group yet,
+     * and serve it for the appropriate consumer.
+     *
      * @return the value of the first remained item.
      */
-    public int get(String groupName, String consumerName) {
-        if(!topicReaders.containsKey(groupName)) {
+    public int getValue(String groupName, String consumerName) throws IOException {
+        if (!topicReaders.containsKey(groupName)) {
             addGroup(groupName);
         }
-
-        return topicReaders.get(groupName).get(consumerName);
+        return topicReaders.get(groupName).getValue(consumerName);
     }
 
     /**
      * This method is used to put the given value at the tail of the topic file.
+     *
      * @param value the value to be put at the end of the topic file
      * @return Nothing.
      */
