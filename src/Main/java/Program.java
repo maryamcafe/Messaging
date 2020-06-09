@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,7 @@ public class Program {
         String topicName = producerGroupDirectory.getName();
         logger.info("topic name for the first producerGroup: " + topicName);
 
-        File consumerGroupFile = new File(topicName + ".txt");
+        File consumerGroupFile = new File(topicName + "_reader.txt");
         String consumerGroupName = topicName + "Readers";
 
         ProducerGroup producerGroup = new ProducerGroup(messageBroker, producerGroupDirectory, topicName);
@@ -58,17 +59,20 @@ public class Program {
 
         producerGroup.start();
         logger.info("First producer group started.");
-//        consumerGroup.start();
-//        logger.info("First consumer group started.\n");
+
+        consumerGroup.start();
+        logger.info("First consumer group started.\n");
 
         while (producerGroup.isAlive() || consumerGroup.isAlive()) {
             try {
                 producerGroup.join();
+                consumerGroup.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-        System.out.println("program finished");
+
+        logger.trace("program finished");
     }
 
     private Path getProducerGroupDirectory(String path) {

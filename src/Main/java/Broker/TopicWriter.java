@@ -2,6 +2,7 @@ package Broker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import util.MyWaitNotify;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -12,22 +13,20 @@ public class TopicWriter {
     RandomAccessFile buffer;
     static final Logger logger = LogManager.getLogger(TopicWriter.class);
 
-    //looks like this is the place where we write a topic to a topic.dat file.
     private Topic topic;
     private HashMap<String, Transaction> transactions;
+    private final MyWaitNotify notifier;
 
-    TopicWriter(Topic topic) {
+    TopicWriter(Topic topic, MyWaitNotify notifier) {
         this.topic = topic;
         transactions = new HashMap<>();
         try {
             buffer = new RandomAccessFile(topic.getTopicFile(), "rws");
-            buffer. seek(0);
-        } catch (FileNotFoundException e) {
-            logger.error(e.getMessage(), e);
+            buffer.seek(0);
         } catch (IOException e) {
-            e.printStackTrace();
             logger.error(e.getMessage(), e);
         }
+        this.notifier = notifier;
         logger.trace("TopicWriter initiated");
     }
 
@@ -108,22 +107,23 @@ public class TopicWriter {
     private void cancelTransaction(String producerName) {
         if (transactions.containsKey(producerName)) {
             transactions.remove(producerName);
-            logger.info(String.format("Transaction for producer \"%s\" was canceled.", producerName));
+            logger.info("Transaction was canceled.");
         } else {
             //To Do - Log the problem in canceling a non-existing transaction.
             logger.warn(String.format("Trying to cancel a non-existing transaction from producer \"%s\".", producerName));
         }
     }
 
-    // to do - make sure a transaction is written sequential.
+
     public void writeValue(int value) {
         try {
-            buffer.write(value);
+            buffer.writeInt(value);
             logger.info(String.format("Writing value = %d to the file.", value));
+            notifier.doNotify(); // notify the topic reader that there's a value to read.
+            logger.info("Readers were notified for value = " + value);
         } catch (IOException e) {
-            e.printStackTrace();
             logger.error(e.getMessage(), e);
         }
-        //To Do - Put the given value at the end of the topicFile
     }
+
 }

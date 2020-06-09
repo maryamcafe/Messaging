@@ -3,6 +3,7 @@ package Broker;
 import Producer.Producer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import util.MyWaitNotify;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,22 +13,24 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 
 public class Topic {
-    private String name;
+    private final String name;
 
     private File topicFile;
-    private TopicWriter topicWriter;
-    private HashMap<String, TopicReader> topicReaders;
-    static final Logger logger = LogManager.getLogger(Topic.class);
+    private final TopicWriter topicWriter;
+    private final HashMap<String, TopicReader> topicReaders;
+    private static final Logger logger = LogManager.getLogger(Topic.class);
+    private final MyWaitNotify notifier;
 
     Topic(String name) {
         this.name = name;
         initFile();
-        topicWriter = new TopicWriter(this);
+        notifier = new MyWaitNotify();
+        topicWriter = new TopicWriter(this, notifier);
         topicReaders = new HashMap<>();
     }
 
     private void initFile() {
-        Path path = Paths.get(name + ".txt");
+        Path path = Paths.get(name + ".dat");
         topicFile = path.toFile();
         try {
             Files.createFile(path);
@@ -36,25 +39,25 @@ public class Topic {
         }
     }
 
-    public File getTopicFile() {
-        return topicFile;
-    }
-
-    private void addGroup(String groupName) {
-        topicReaders.put(groupName, new TopicReader(this, groupName));
-    }
-
     /**
      * This method is used to get the first value in the topic file which is not read in the given group yet,
      * and serve it for the appropriate consumer.
      *
      * @return the value of the first remained item.
      */
-    public int getValue(String groupName, String consumerName) throws IOException {
-        if (!topicReaders.containsKey(groupName)) {
-            addGroup(groupName);
+    public int getValue(String consumerGroupName, String consumerName) throws Exception {
+        if (!topicReaders.containsKey(consumerGroupName)) {
+            addGroup(consumerGroupName);
         }
-        return topicReaders.get(groupName).getValue(consumerName);
+        return topicReaders.get(consumerGroupName).getValue(consumerName);
+    }
+
+    private synchronized void addGroup(String consumerGroupName) {
+        logger.debug("readers include " + consumerGroupName + "? " + topicReaders.containsKey(consumerGroupName));
+        if (!topicReaders.containsKey(consumerGroupName)) {
+            topicReaders.put(consumerGroupName, new TopicReader(this, consumerGroupName, notifier));
+            logger.debug("new consumer group is being added: " + consumerGroupName);
+        }
     }
 
     /**
@@ -66,4 +69,10 @@ public class Topic {
     public void put(String producerName, int value) {
         topicWriter.put(producerName, value);
     }
+
+
+    public File getTopicFile() {
+        return topicFile;
+    }
+
 }
